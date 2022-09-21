@@ -1,10 +1,9 @@
 ---
 name: flivver
-description: A clean solution to handling callbacks for custom events.
+description: An elegant and clean solution to handling callbacks for custom events.
 version: 0.0.1
 homepage: https://github.com/Chaitanyabsprip/flivver
 repository: https://github.com/Chaitanyabsprip/flivver
-publish_to: none
 
 environment:
   sdk: '>=2.15.1 <3.0.0'
