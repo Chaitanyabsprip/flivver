@@ -6,4 +6,5 @@ export 'src/exceptions.dart'
         EventServiceNotRegisteredException,
         EventServiceAlreadyRegisteredException,
         EventHandlerNotInitialised;
-export 'src/flivver.dart' show ServiceFactory, FlivverEventHandler, EventService;
+export 'src/flivver.dart'
+    show ServiceFactory, FlivverEventHandler, EventService;
