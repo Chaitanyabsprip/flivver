@@ -1,5 +1,4 @@
-import 'package:app_event_service/app_event_service.dart';
-import 'package:app_event_service/src/exceptions.dart';
+import 'package:flivver/flivver.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -7,62 +6,62 @@ import 'mock.dart';
 import 'test_objects.dart';
 
 void main() {
-  late AppEventService<AppLifeCycleEvents> appEventService;
+  late FlivverEventHandler<FakeEvents> appEventService;
 
   setUpAll(() {
-    registerFallbackValue(MockEventService());
-    registerFallbackValue(AppLifeCycleEvents.onStartup);
+    registerFallbackValue(FakeEventService());
+    registerFallbackValue(FakeEvents.onStartup);
   });
 
   test(
-      'should throw AppEventServiceNotInitialised when calling I before '
+      'should throw AppEventHandlerNotInitialised when calling I before '
       'initialising once', () {
     expect(
-      () => AppEventService.I,
-      throwsA(isA<AppEventServiceNotInitialised>()),
+      () => FlivverEventHandler.I,
+      throwsA(isA<EventHandlerNotInitialised>()),
     );
   });
 
-  group('After initialisation, AppEventService', () {
+  group('After initialisation, AppEventHandler', () {
     setUp(() {
-      appEventService = AppEventService<AppLifeCycleEvents>.newInstance();
+      appEventService = FlivverEventHandler<FakeEvents>.newInstance();
     });
 
     test(
-        'should create an instance of AppEventService when static method I is '
+        'should create an instance of AppEventHandler when static method I is '
         'called', () {
-      expect(AppEventService.I, isA<AppEventService>());
+      expect(FlivverEventHandler.I, isA<FlivverEventHandler>());
     });
 
     test(
-        'should return an instance of AppEventService when static method '
+        'should return an instance of AppEventHandler when static method '
         'instance is called', () {
-      expect(AppEventService.instance, isA<AppEventService>());
+      expect(FlivverEventHandler.instance, isA<FlivverEventHandler>());
     });
 
     test(
-        'should return a new instance of AppEventService when factory method '
+        'should return a new instance of AppEventHandler when factory method '
         'asNewInstance is called', () {
-      final instance1 = AppEventService.newInstance();
-      final instance2 = AppEventService.newInstance();
+      final instance1 = FlivverEventHandler.newInstance();
+      final instance2 = FlivverEventHandler.newInstance();
       expect(instance1, isNot(equals(instance2)));
     });
 
     test(
-        'should return same instance of AppEventService when I and instance '
+        'should return same instance of AppEventHandler when I and instance '
         'static methods are called', () {
-      final instance1 = AppEventService.I;
-      final instance2 = AppEventService.instance;
+      final instance1 = FlivverEventHandler.I;
+      final instance2 = FlivverEventHandler.instance;
       expect(instance1, equals(instance2));
     });
 
     test('should register startup service when registerEventService is called',
         () {
-      appEventService.registerEventService<MockEventService>(
-        MockEventService(),
+      appEventService.registerEventService<FakeEventService>(
+        FakeEventService(),
         events: [],
       );
-      expect(appEventService.isRegistered<MockEventService>(), true);
+      expect(appEventService.isRegistered<FakeEventService>(), true);
     });
 
     test(
@@ -70,20 +69,20 @@ void main() {
         'called', () {
       appEventService
         ..registerEventService(
-          MockEventService(),
+          FakeEventService(),
           events: [],
         )
-        ..unregisterEventService<MockEventService>();
-      expect(appEventService.isRegistered<MockEventService>(), false);
+        ..unregisterEventService<FakeEventService>();
+      expect(appEventService.isRegistered<FakeEventService>(), false);
     });
 
     test(
         'should throw EventServiceAlreadyRegisteredException when '
         'registerEventService is called with same service twice', () {
-      appEventService.registerEventService(MockEventService(), events: []);
+      appEventService.registerEventService(FakeEventService(), events: []);
       expect(
         () => appEventService.registerEventService(
-          MockEventService(),
+          FakeEventService(),
           events: [],
         ),
         throwsA(isA<EventServiceAlreadyRegisteredException>()),
@@ -94,7 +93,7 @@ void main() {
         'should throw EventServiceNotRegisteredException when '
         'unRegisterEventService is called with a new service', () {
       expect(
-        () => appEventService.unregisterEventService(MockEventService()),
+        () => appEventService.unregisterEventService(FakeEventService()),
         throwsA(isA<EventServiceNotRegisteredException>()),
       );
     });
@@ -102,28 +101,28 @@ void main() {
     test(
         'should return true when isRegistered is called with registered '
         'service', () {
-      appEventService.registerEventService(MockEventService(), events: []);
-      expect(appEventService.isRegistered<MockEventService>(), true);
+      appEventService.registerEventService(FakeEventService(), events: []);
+      expect(appEventService.isRegistered<FakeEventService>(), true);
     });
 
     test(
         'should return false when isRegistered is called with unregistered '
         'service', () {
-      expect(appEventService.isRegistered<MockEventService>(), false);
+      expect(appEventService.isRegistered<FakeEventService>(), false);
     });
 
     test('should unregister all services when reset is called', () {
       appEventService
-        ..registerEventService(MockEventService(), events: [])
+        ..registerEventService(FakeEventService(), events: [])
         ..registerEventService(MockEventService1(), events: [])
         ..registerEventService(MockEventService2(), events: [])
         ..registerEventService(MockEventService3(), events: []);
-      expect(appEventService.isRegistered<MockEventService>(), true);
+      expect(appEventService.isRegistered<FakeEventService>(), true);
       expect(appEventService.isRegistered<MockEventService1>(), true);
       expect(appEventService.isRegistered<MockEventService2>(), true);
       expect(appEventService.isRegistered<MockEventService3>(), true);
       appEventService.reset();
-      expect(appEventService.isRegistered<MockEventService>(), false);
+      expect(appEventService.isRegistered<FakeEventService>(), false);
       expect(appEventService.isRegistered<MockEventService1>(), false);
       expect(appEventService.isRegistered<MockEventService2>(), false);
       expect(appEventService.isRegistered<MockEventService3>(), false);
@@ -136,24 +135,24 @@ void main() {
       final service2 = MockEventService2();
       final service3 = MockEventService3();
 
-      when(() => service1.call<AppLifeCycleEvents>(any())).thenAnswer(
+      when(() => service1.call<FakeEvents>(any())).thenAnswer(
         (_) => Future<void>.value(),
       );
-      when(() => service2.call<AppLifeCycleEvents>(any())).thenAnswer(
+      when(() => service2.call<FakeEvents>(any())).thenAnswer(
         (_) => Future<void>.value(),
       );
-      when(() => service3.call<AppLifeCycleEvents>(any())).thenAnswer(
+      when(() => service3.call<FakeEvents>(any())).thenAnswer(
         (_) => Future<void>.value(),
       );
 
       appEventService
         ..registerEventService(service1, events: [])
         ..registerEventService(service2, events: [])
-        ..call(AppLifeCycleEvents.onStartup);
+        ..call(FakeEvents.onStartup);
 
-      verify(() => service1.call<AppLifeCycleEvents>(any())).called(1);
-      verify(() => service2.call<AppLifeCycleEvents>(any())).called(1);
-      verifyNever(() => service3.call<AppLifeCycleEvents>(any()));
+      verify(() => service1.call<FakeEvents>(any())).called(1);
+      verify(() => service2.call<FakeEvents>(any())).called(1);
+      verifyNever(() => service3.call<FakeEvents>(any()));
     });
   });
 }

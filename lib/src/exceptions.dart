@@ -38,10 +38,10 @@ class EventServiceAlreadyRegisteredException extends Equatable
 
 /// This exception is thrown when you try to access an instance without first
 /// once initialising AppEventService.
-class AppEventServiceNotInitialised extends Equatable implements Exception {
+class EventHandlerNotInitialised extends Equatable implements Exception {
   /// This exception is thrown when you try to access an instance without first
   /// once initialising AppEventService.
-  const AppEventServiceNotInitialised();
+  const EventHandlerNotInitialised();
 
   @override
   List<Object?> get props => [];

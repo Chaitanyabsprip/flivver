@@ -5,39 +5,56 @@ import 'package:meta/meta.dart';
 import 'exceptions.dart';
 
 /// Function that returns a EventService instance of type [T]
-typedef ServiceFactory<T> = T Function();
+typedef ServiceFactory<T extends EventService> = T Function();
 
 /// A Service class that handles registration of [EventService]s.
 ///
 /// Usage:
+/// - Register a service
+///
 /// ```dart
-///   AppEventService.I.registerEventService<MyEventService>(
+///   EventHandler.I.registerEventService<MyEventService>(
 ///     MyEventService(),
 ///   );
-///   AppEventService.I.registerEventService<MyOtherEventService>(
-///     MyOtherEventService(),
+///   EventHandler.I.registerEventServiceLazy<MyOtherEventService>(
+///     () => MyOtherEventService(),
 ///   );
-///   AppEventService.I.unregisterEventService(MyEventService());
-///   AppEventService.I.unregisterEventService<MyEventService>();
 /// ```
-abstract class AppEventService<Event extends Enum> {
+///
+/// - Unregister a service
+///
+/// ```dart
+///   EventHandler.I.unregisterEventService(MyEventService());
+///   // Or
+///   EventHandler.I.unregisterEventService<MyEventService>();
+/// ```
+///
+/// - Unregister all services or reset the singleton
+///
+/// ```dart
+///   EventHandler.I.reset()
+///   // Or
+///   EventHandler.newInstance();
+/// ```
+abstract class FlivverEventHandler<Event extends Object> {
   /// Resets the global singleton.
-  factory AppEventService.newInstance() =>
-      _instance = _AppEventDelegate<Event>();
+  factory FlivverEventHandler.newInstance() {
+    return _instance = _AppEventDelegate<Event>();
+  }
 
-  static late AppEventService _instance;
+  static late FlivverEventHandler _instance;
 
   /// Short form to access the singleton instance.
-  static AppEventService get I {
+  static FlivverEventHandler get I {
     try {
       return _instance;
     } catch (e) {
-      throw const AppEventServiceNotInitialised();
+      throw const EventHandlerNotInitialised();
     }
   }
 
   /// Access the singleton instance.
-  static AppEventService get instance => I;
+  static FlivverEventHandler get instance => I;
 
   /// Calls the registered [EventService]\(s) for the given event.
   void call(Event currentEvent);
@@ -78,18 +95,37 @@ abstract class AppEventService<Event extends Enum> {
   void unregisterEventService<T extends EventService>([EventService? service]);
 }
 
-/// Implement this class to register a startup service with [AppEventService].
+/// Implement this class to register a startup service with
+/// [FlivverEventHandler].
+///
+/// Usage:
+/// ```dart
+/// class DependencyInjectionService implements EventService {
+///   @override
+///   void call<Event extends Object>(Event currentEvent) {
+///     if (currentEvent is StartupEvent) {
+///       // initialising non-auth dependencies
+///     } else if (currentEvent is LogInEvent || currentEvent is SignInEvent) {
+///       // initialising auth dependencies
+///     } else if (currentEvent is LogOutEvent) {
+///       // clearing dependencies
+///     }
+///   }
+/// }
+/// ```
 // ignore: one_member_abstracts
 abstract class EventService {
-  /// Calls this [EventService]s for the given event.
-  void call<Event extends Enum>(Event currentEvent);
+  /// Call this [EventService] only for the currentevent.
+  void call<Event extends Object>(Event currentEvent);
 }
 
-class _AppEventDelegate<Event extends Enum> implements AppEventService<Event> {
+class _AppEventDelegate<Event extends Object>
+    implements FlivverEventHandler<Event> {
   _AppEventDelegate();
 
-  final LinkedHashMap<_TypedEvent, _TypedServiceFactory> _services =
-      LinkedHashMap.from(<_TypedEvent, _TypedServiceFactory>{});
+  final _services = LinkedHashMap<_TypedEvent, _TypedServiceFactory>.from(
+    <_TypedEvent, _TypedServiceFactory>{},
+  );
 
   @override
   void call(Event currentEvent) {
@@ -109,10 +145,7 @@ class _AppEventDelegate<Event extends Enum> implements AppEventService<Event> {
     T service, {
     required List<Event> events,
   }) {
-    _register<T>(
-      service: service,
-      events: events,
-    );
+    _register<T>(service: service, events: events);
   }
 
   @override
@@ -129,14 +162,11 @@ class _AppEventDelegate<Event extends Enum> implements AppEventService<Event> {
   }
 
   @override
-  void reset() {
-    _services.clear();
-  }
+  void reset() => _services.clear();
 
   @override
   void unregisterEventService<T extends EventService>([EventService? service]) {
-    if (_services.containsKey(_TypedEvent<T, Event>(const [])) ||
-        _services.containsValue(service)) {
+    if (isRegistered<T>(service)) {
       _services.remove(_TypedEvent<T, Event>(const []));
     } else {
       throw EventServiceNotRegisteredException(
@@ -146,10 +176,10 @@ class _AppEventDelegate<Event extends Enum> implements AppEventService<Event> {
   }
 
   void _register<T extends EventService>({
-    T? service,
-    ServiceFactory<T>? serviceFactory,
-    required List<Event> events,
     Event? initializeOn,
+    ServiceFactory<T>? serviceFactory,
+    T? service,
+    required List<Event> events,
   }) {
     if (_services.containsKey(_TypedEvent<T, Event>(events))) {
       throw EventServiceAlreadyRegisteredException(
@@ -165,7 +195,7 @@ class _AppEventDelegate<Event extends Enum> implements AppEventService<Event> {
 }
 
 @immutable
-class _TypedEvent<T extends EventService, Event extends Enum> {
+class _TypedEvent<T extends EventService, Event extends Object> {
   const _TypedEvent(this.events);
 
   final List<Event> events;
@@ -187,7 +217,7 @@ class _TypedEvent<T extends EventService, Event extends Enum> {
 }
 
 @immutable
-class _TypedServiceFactory<T extends EventService, Event extends Enum> {
+class _TypedServiceFactory<T extends EventService, Event extends Object> {
   const _TypedServiceFactory({
     this.serviceFactory,
     this.service,

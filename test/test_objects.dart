@@ -1,4 +1,4 @@
-enum AppLifeCycleEvents {
+enum FakeEvents {
   onStartup,
   onLogin,
   onSessionInitialised,
