@@ -36,10 +36,10 @@ typedef ServiceFactory<T extends EventService> = T Function();
 ///   // Or
 ///   EventHandler.newInstance();
 /// ```
-abstract class FlivverEventHandler<Event extends Object> {
+abstract class FlivverEventHandler<E extends Object> {
   /// Resets the global singleton.
   factory FlivverEventHandler.newInstance() {
-    return _instance = _AppEventDelegate<Event>();
+    return _instance = _FlivverEventDelegate<E>();
   }
 
   static late FlivverEventHandler _instance;
@@ -56,11 +56,11 @@ abstract class FlivverEventHandler<Event extends Object> {
   /// Access the singleton instance.
   static FlivverEventHandler get instance => I;
 
-  /// Calls the registered [EventService]\(s) for the given event.
-  void call(Event currentEvent);
+  /// Calls the registered [EventService](s) for the given event.
+  Future<void> call(E currentEvent);
 
   /// Test if a service of a Type [T] or instance [service] is registered.
-  bool isRegistered<T extends EventService>([EventService? service]);
+  bool isRegistered<T extends EventService>([T? service]);
 
   /// Registers a [service] against type [T] by passing an
   /// instance of [T].
@@ -68,7 +68,7 @@ abstract class FlivverEventHandler<Event extends Object> {
   /// [events] is the list of events that the [service] will be called for.
   void registerEventService<T extends EventService>(
     T service, {
-    required List<Event> events,
+    required List<E> events,
   });
 
   /// Registers a [serviceFactory] against type [T] that will be initialized on
@@ -83,8 +83,8 @@ abstract class FlivverEventHandler<Event extends Object> {
   /// is already registered.
   void registerEventServiceLazy<T extends EventService>(
     ServiceFactory<T> serviceFactory, {
-    required List<Event> events,
-    required Event initializeOn,
+    required List<E> events,
+    required E initializeOn,
   });
 
   /// Unregisters all services.
@@ -116,34 +116,34 @@ abstract class FlivverEventHandler<Event extends Object> {
 // ignore: one_member_abstracts
 abstract class EventService {
   /// Call this [EventService] only for the currentevent.
-  void call<Event extends Object>(Event currentEvent);
+  Future<void> call<E extends Object>(E currentEvent);
 }
 
-class _AppEventDelegate<Event extends Object>
-    implements FlivverEventHandler<Event> {
-  _AppEventDelegate();
+class _FlivverEventDelegate<E extends Object>
+    implements FlivverEventHandler<E> {
+  _FlivverEventDelegate();
 
   final _services = LinkedHashMap<_TypedEvent, _TypedServiceFactory>.from(
     <_TypedEvent, _TypedServiceFactory>{},
   );
 
   @override
-  void call(Event currentEvent) {
+  Future<void> call(E currentEvent) async {
     for (final serviceOrFactory in _services.values) {
-      serviceOrFactory(currentEvent);
+      await serviceOrFactory(currentEvent);
     }
   }
 
   @override
   bool isRegistered<T extends EventService>([EventService? service]) {
-    return _services.containsKey(_TypedEvent<T, Event>(const [])) ||
+    return _services.containsKey(_TypedEvent<T, E>(const [])) ||
         _services.containsValue(service);
   }
 
   @override
   void registerEventService<T extends EventService>(
     T service, {
-    required List<Event> events,
+    required List<E> events,
   }) {
     _register<T>(service: service, events: events);
   }
@@ -151,8 +151,8 @@ class _AppEventDelegate<Event extends Object>
   @override
   void registerEventServiceLazy<T extends EventService>(
     ServiceFactory<T> serviceFactory, {
-    required Event initializeOn,
-    required List<Event> events,
+    required E initializeOn,
+    required List<E> events,
   }) {
     _register<T>(
       serviceFactory: serviceFactory,
@@ -167,7 +167,7 @@ class _AppEventDelegate<Event extends Object>
   @override
   void unregisterEventService<T extends EventService>([EventService? service]) {
     if (isRegistered<T>(service)) {
-      _services.remove(_TypedEvent<T, Event>(const []));
+      _services.remove(_TypedEvent<T, E>(const []));
     } else {
       throw EventServiceNotRegisteredException(
         'No service registered for type $T or $service',
@@ -176,17 +176,17 @@ class _AppEventDelegate<Event extends Object>
   }
 
   void _register<T extends EventService>({
-    Event? initializeOn,
+    E? initializeOn,
     ServiceFactory<T>? serviceFactory,
     T? service,
-    required List<Event> events,
+    required List<E> events,
   }) {
-    if (_services.containsKey(_TypedEvent<T, Event>(events))) {
+    if (_services.containsKey(_TypedEvent<T, E>(events))) {
       throw EventServiceAlreadyRegisteredException(
         'A service of type $T is already registered.',
       );
     }
-    _services[_TypedEvent<T, Event>(events)] = _TypedServiceFactory<T, Event>(
+    _services[_TypedEvent<T, E>(events)] = _TypedServiceFactory<T, E>(
       service: service,
       serviceFactory: serviceFactory,
       initializeOn: initializeOn,
@@ -194,11 +194,13 @@ class _AppEventDelegate<Event extends Object>
   }
 }
 
+/// == returns true either when other has the same type as this or when other
+/// has same events as this.
 @immutable
-class _TypedEvent<T extends EventService, Event extends Object> {
+class _TypedEvent<T extends EventService, E extends Object> {
   const _TypedEvent(this.events);
 
-  final List<Event> events;
+  final List<E> events;
 
   @override
   int get hashCode => type.hashCode;
@@ -207,17 +209,16 @@ class _TypedEvent<T extends EventService, Event extends Object> {
 
   @override
   bool operator ==(Object other) =>
-      other == T || (other is _TypedEvent<T, Event> && other.events == events);
+      other == T || (other is _TypedEvent<T, E> && other.events == events);
 
   @override
   String toString() {
-    return '_TypedEvent<$T, $Event>(events: '
-        '${events.runtimeType}, type: $type)';
+    return '_TypedEvent<$T, $E>(events: ${events.runtimeType}, type: $type)';
   }
 }
 
 @immutable
-class _TypedServiceFactory<T extends EventService, Event extends Object> {
+class _TypedServiceFactory<T extends EventService, E extends Object> {
   const _TypedServiceFactory({
     this.serviceFactory,
     this.service,
@@ -229,7 +230,7 @@ class _TypedServiceFactory<T extends EventService, Event extends Object> {
 
   final ServiceFactory<T>? serviceFactory;
   final T? service;
-  final Event? initializeOn;
+  final E? initializeOn;
 
   @override
   int get hashCode => initializeOn.hashCode;
@@ -242,20 +243,20 @@ class _TypedServiceFactory<T extends EventService, Event extends Object> {
       other == serviceFactory!() ||
       (other is _TypedServiceFactory && other.initializeOn == initializeOn);
 
-  T call(Event currentEvent) {
+  Future<T> call(E currentEvent) async {
     if (service == null && currentEvent == initializeOn) {
       final lazyLoadedService = serviceFactory!();
-      lazyLoadedService<Event>(currentEvent);
+      await lazyLoadedService<E>(currentEvent);
       return lazyLoadedService;
     } else {
-      service!(currentEvent);
+      await service!(currentEvent);
       return service!;
     }
   }
 
   @override
   String toString() {
-    return '_TypedServiceFactory<$T, $Event>(serviceFactory: '
+    return '_TypedServiceFactory<$T, $E>(serviceFactory: '
         '${serviceFactory.runtimeType}, service: $service, '
         'initializeOn: $initializeOn)';
   }

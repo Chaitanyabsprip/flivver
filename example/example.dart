@@ -45,7 +45,7 @@ abstract class DependenciesInitialisedEvent extends CustomEvent {}
 
 class DependencyInjectionService implements EventService {
   @override
-  void call<Event extends Object>(Event currentEvent) {
+  Future<void> call<Event extends Object>(Event currentEvent) async {
     if (currentEvent is StartupEvent) {
       // initialising non-auth dependencies
     } else if (currentEvent is LogInEvent || currentEvent is SignInEvent) {
@@ -58,7 +58,7 @@ class DependencyInjectionService implements EventService {
 
 class FirebaseService implements EventService {
   @override
-  void call<Event extends Object>(Event currentEvent) {
+  Future<void> call<Event extends Object>(Event currentEvent) async {
     if (currentEvent is StartupEvent) {
       // initialising firebase
     }
@@ -67,7 +67,7 @@ class FirebaseService implements EventService {
 
 class FeatureService implements EventService {
   @override
-  void call<Event extends Object>(Event currentEvent) {
+  Future<void> call<Event extends Object>(Event currentEvent) async {
     if (currentEvent is DependenciesInitialisedEvent) {
       // doing something
     }

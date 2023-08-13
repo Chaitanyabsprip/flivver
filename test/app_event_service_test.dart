@@ -14,29 +14,19 @@ void main() {
   });
 
   test(
-      'should throw AppEventHandlerNotInitialised when calling I before '
-      'initialising once', () {
-    expect(
-      () => FlivverEventHandler.I,
-      throwsA(isA<EventHandlerNotInitialised>()),
-    );
-  });
+    'should throw AppEventHandlerNotInitialised when intantiating before '
+    'initialising once',
+    () {
+      expect(
+        () => FlivverEventHandler.I,
+        throwsA(isA<EventHandlerNotInitialised>()),
+      );
+    },
+  );
 
   group('After initialisation, AppEventHandler', () {
     setUp(() {
       appEventService = FlivverEventHandler<FakeEvents>.newInstance();
-    });
-
-    test(
-        'should create an instance of AppEventHandler when static method I is '
-        'called', () {
-      expect(FlivverEventHandler.I, isA<FlivverEventHandler>());
-    });
-
-    test(
-        'should return an instance of AppEventHandler when static method '
-        'instance is called', () {
-      expect(FlivverEventHandler.instance, isA<FlivverEventHandler>());
     });
 
     test(
@@ -68,10 +58,7 @@ void main() {
         'should unregister startup service when unregisterEventService is '
         'called', () {
       appEventService
-        ..registerEventService(
-          FakeEventService(),
-          events: [],
-        )
+        ..registerEventService(FakeEventService(), events: [])
         ..unregisterEventService<FakeEventService>();
       expect(appEventService.isRegistered<FakeEventService>(), false);
     });
@@ -130,7 +117,7 @@ void main() {
 
     test(
         'should call call() on all registered services when '
-        'callOnEventServices is called', () {
+        'callOnEventServices is called', () async {
       final service1 = MockEventService1();
       final service2 = MockEventService2();
       final service3 = MockEventService3();
@@ -146,9 +133,9 @@ void main() {
       );
 
       appEventService
-        ..registerEventService(service1, events: [])
-        ..registerEventService(service2, events: [])
-        ..call(FakeEvents.onStartup);
+        ..registerEventService(service1, events: [FakeEvents.onStartup])
+        ..registerEventService(service2, events: [FakeEvents.onStartup]);
+      await appEventService.call(FakeEvents.onStartup);
 
       verify(() => service1.call<FakeEvents>(any())).called(1);
       verify(() => service2.call<FakeEvents>(any())).called(1);
